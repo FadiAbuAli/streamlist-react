@@ -1,85 +1,52 @@
-import { useState } from "react";
-import "./StreamList.css"; // Optional for extra styling
+import React, { useEffect, useState } from "react";
+import "./StreamList.css";
 
 function StreamList() {
-  const [input, setInput] = useState("");
   const [items, setItems] = useState([]);
-  const [editIndex, setEditIndex] = useState(null);
-  const [editText, setEditText] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setItems([...items, { text: input, completed: false }]);
-    setInput("");
-  };
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("streamList");
+      const parsed = saved ? JSON.parse(saved) : [];
+      setItems(parsed);
+    } catch (error) {
+      console.error("Failed to load StreamList:", error);
+      setItems([]);
+    }
+  }, []);
 
-  const toggleComplete = (index) => {
-    const newItems = [...items];
-    newItems[index].completed = !newItems[index].completed;
-    setItems(newItems);
-  };
-
-  const handleDelete = (index) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
-  };
-
-  const startEditing = (index) => {
-    setEditIndex(index);
-    setEditText(items[index].text);
-  };
-
-  const handleEditSubmit = (index) => {
-    const newItems = [...items];
-    newItems[index].text = editText;
-    setItems(newItems);
-    setEditIndex(null);
-    setEditText("");
+  const handleDelete = (id) => {
+    const updated = items.filter((item) => item.id !== id);
+    setItems(updated);
+    localStorage.setItem("streamList", JSON.stringify(updated));
   };
 
   return (
     <div className="streamlist-container">
-      <h2>StreamList</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Add a movie or show"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-        <button type="submit">Add</button>
-      </form>
-
-      <ul>
-        {items.map((item, index) => (
-          <li key={index} className={item.completed ? "completed" : ""}>
-            {editIndex === index ? (
-              <>
-                <input
-                  type="text"
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                />
-                <button onClick={() => handleEditSubmit(index)}>
-                  <span className="material-icons">check</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <span onClick={() => toggleComplete(index)}>{item.text}</span>
-                <button onClick={() => startEditing(index)}>
-                  <span className="material-icons">edit</span>
-                </button>
-                <button onClick={() => handleDelete(index)}>
-                  <span className="material-icons">delete</span>
-                </button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      <h2>My Streaming List</h2>
+      {items.length === 0 ? (
+        <p>Your list is empty. Search for a movie and add it to your StreamList!</p>
+      ) : (
+        <ul className="list">
+          {items.map((item) => (
+            <li key={item.id} className="streamlist-item">
+              <img
+                src={
+                  item.poster_path
+                    ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
+                    : "https://via.placeholder.com/200x300?text=No+Image"
+                }
+                alt={item.title}
+              />
+              <div className="streamlist-info">
+                <h3>{item.title}</h3>
+                <p>{item.overview || "No description available."}</p>
+                <button onClick={() => handleDelete(item.id)}>Remove</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

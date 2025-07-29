@@ -4,12 +4,22 @@ import './Search.css';
 const Search = () => {
   const [query, setQuery] = useState('');
   const [movies, setMovies] = useState(() => {
-    const saved = localStorage.getItem('tmdbResults');
     try {
+      const saved = localStorage.getItem('tmdbResults');
       const parsed = saved && saved !== 'undefined' ? JSON.parse(saved) : [];
       return parsed;
     } catch (e) {
-      console.error("Failed to parse saved movies:", e);
+      console.error('Failed to parse saved movies:', e);
+      return [];
+    }
+  });
+
+  const [streamList, setStreamList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('streamList');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Failed to load streamList:', e);
       return [];
     }
   });
@@ -32,6 +42,24 @@ const Search = () => {
     }
   };
 
+  const handleClear = () => {
+    setQuery('');
+    setMovies([]);
+    localStorage.removeItem('tmdbResults');
+  };
+
+  const handleAddToStreamList = (movie) => {
+    const alreadyExists = streamList.some(item => item.id === movie.id);
+    if (!alreadyExists) {
+      const updated = [...streamList, movie];
+      setStreamList(updated);
+      localStorage.setItem('streamList', JSON.stringify(updated));
+      alert(`${movie.title} added to StreamList!`);
+    }
+  };
+
+  const isInStreamList = (id) => streamList.some(movie => movie.id === id);
+
   return (
     <div className="search-container">
       <h2>Search for Movies</h2>
@@ -43,25 +71,38 @@ const Search = () => {
           onChange={(e) => setQuery(e.target.value)}
         />
         <button type="submit">Search</button>
+        <button type="button" onClick={handleClear} style={{ marginLeft: '1rem' }}>
+          Clear
+        </button>
       </form>
 
       <div className="results">
-        {movies.map((movie) => (
-          <div key={movie.id} className="movie-card">
-            <img
-              src={
-                movie.poster_path
-                  ? `https://image.tmdb.org/t/p/w200${movie.poster_path}`
-                  : 'https://via.placeholder.com/200x300?text=No+Image'
-              }
-              alt={movie.title}
-            />
-            <div className="movie-info">
-              <h3>{movie.title}</h3>
-              <p>{movie.overview || 'No description available.'}</p>
+        {movies.map((movie) => {
+          const alreadyAdded = isInStreamList(movie.id);
+          return (
+            <div key={movie.id} className="movie-card">
+              <img
+                src={
+                  movie.poster_path
+                    ? `https://image.tmdb.org/t/p/w200${movie.poster_path}`
+                    : 'https://via.placeholder.com/200x300?text=No+Image'
+                }
+                alt={movie.title}
+              />
+              <div className="movie-info">
+                <h3>{movie.title}</h3>
+                <p>{movie.overview || 'No description available.'}</p>
+                <button
+                  className={`add-btn ${alreadyAdded ? 'disabled' : ''}`}
+                  onClick={() => handleAddToStreamList(movie)}
+                  disabled={alreadyAdded}
+                >
+                  {alreadyAdded ? 'Already Added' : 'Add to StreamList'}
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
